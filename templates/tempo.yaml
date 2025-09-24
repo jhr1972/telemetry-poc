@@ -1,0 +1,111 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tempo
+  namespace: tempo # Create a new namespace for tempo
+spec:
+  type: ClusterIP
+  selector:
+    app: tempo
+  ports:
+    - name: otlp-grpc
+      protocol: TCP
+      port: 4317
+      targetPort: 4317
+    - name: http
+      protocol: TCP
+      port: 3200
+      targetPort: 3200
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tempo
+  namespace: tempo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tempo
+  template:
+    metadata:
+      labels:
+        app: tempo
+    spec:
+      containers:
+      - name: tempo
+        image: grafana/tempo:latest # Use a specific version in production
+        args:
+          - "-config.file=/etc/tempo-config.yaml"
+        ports:
+        - containerPort: 4317
+          name: otlp-grpc
+        - containerPort: 3200
+          name: http
+        volumeMounts:
+          - name: tempo-config-vol
+            mountPath: /etc/
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 3200
+        livenessProbe:
+          httpGet:
+            path: /ready
+            port: 3200
+      volumes:
+      - name: tempo-config-vol
+        configMap:
+          name: tempo-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tempo-config
+  namespace: tempo
+data:
+  tempo-config.yaml: |
+    server:
+      http_listen_port: 3200
+
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+            http:
+
+    ingester:
+      trace_idle_period: 10s
+      trace_idle_batch_period: 2s
+
+    compactor:
+      compaction_window: 1h
+      compaction_window_jitter: 1h
+
+    storage:
+      trace:
+        wal:
+          wal_enabled: true
+          wal_prefix: "/data/tempo/wal"
+        block:
+          version: "v1"
+          pool_max_workers: 100
+          encoding: "snappy"
+          pool_workers_jitter: 50ms
+          compaction_jitter: 10s
+        backend: "local"
+        local:
+          path: "/data/tempo/traces"
+
+    blocks:
+      wal:
+        wal_enabled: true
+        wal_prefix: "/data/tempo/wal"
+
+    metrics_generator:
+      registry:
+        external_labels:
+          source: "tempo"
+      processors:
+        - service-graphs
