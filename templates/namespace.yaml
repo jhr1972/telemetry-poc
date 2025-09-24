@@ -1,0 +1,6 @@
+
+kind: Namespace
+metadata:
+  name: telemetry-poc
+  labels:
+    {{- include "telemetry-poc.labels" . | nindent 4 }}
