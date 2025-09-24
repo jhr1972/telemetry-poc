@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  namespace: telemetry-poc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+    spec:
+      containers:
+      - name: otel-collector
+        image: otel/opentelemetry-collector-contrib:latest # Use a specific version in production
+        args:
+          - "--config=/conf/otel-collector-config.yaml"
+        volumeMounts:
+          - name: otel-collector-config-vol
+            mountPath: /conf
+      volumes:
+      - name: otel-collector-config-vol
+        configMap:
+          name: otel-collector-conf
+          items:
+            - key: otel-collector-config.yaml
+              path: otel-collector-config.yaml
