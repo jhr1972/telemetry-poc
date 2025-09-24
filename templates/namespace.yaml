@@ -27,3 +27,18 @@ metadata:
 spec:
   finalizers:
   - kubernetes
+---
+
+
+apiVersion: v1
+kind: Namespace
+metadata:
+ 
+  name: grafana
+  labels:
+    {{- include "telemetry-poc.labels" . | nindent 4 }}
+ 
+ 
+spec:
+  finalizers:
+  - kubernetes
