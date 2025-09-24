@@ -12,3 +12,18 @@ spec:
   finalizers:
   - kubernetes
 
+---
+
+
+apiVersion: v1
+kind: Namespace
+metadata:
+ 
+  name: tempo
+  labels:
+    {{- include "telemetry-poc.labels" . | nindent 4 }}
+ 
+ 
+spec:
+  finalizers:
+  - kubernetes
